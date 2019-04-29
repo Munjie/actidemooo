@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.oldguy.example.modules.workflow.dao.jpas.UserProcessInstanceMapper">
+
+    <select id="findOne" parameterType="string" resultType="UserProcessInstance">
+    SELECT
+        d.ID_ processInstanceId,
+        d.BUSINESS_KEY_ businessKey,
+        d.START_USER_ID_ creatorId,
+        d.START_TIME_ startTime,
+        d.END_TIME_ endTime,
+        f.NAME_ processDefinitionName,
+        f.KEY_ processDefinitionKey,
+        e.NAME_ taskName,
+        e.ASSIGNEE_ assignees,
+        g.SUSPENSION_STATE_ active
+    FROM
+        act_hi_procinst d
+    LEFT JOIN act_re_procdef f ON d.PROC_DEF_ID_ = f.ID_
+    LEFT JOIN act_ru_execution g ON d.BUSINESS_KEY_ = g.BUSINESS_KEY_
+    LEFT JOIN(
+        SELECT
+            a.NAME_,a.PROC_INST_ID_,
+            IFNULL(a.ASSIGNEE_,GROUP_CONCAT(b.USER_ID_)) ASSIGNEE_
+        FROM
+            act_hi_taskinst a
+        LEFT JOIN act_hi_identitylink b ON a.ID_ = b.TASK_ID_
+        INNER JOIN (
+        SELECT MAX(START_TIME_) START_TIME_ ,PROC_INST_ID_ FROM act_hi_taskinst WHERE ISNULL(END_TIME_) GROUP BY PROC_INST_ID_
+        ) c ON a.START_TIME_ = c.START_TIME_ AND a.PROC_INST_ID_ = c.PROC_INST_ID_
+        GROUP BY a.PROC_INST_ID_
+    ) e ON d.ID_ = e.PROC_INST_ID_
+    WHERE
+        d.START_USER_ID_ = #{id};
+    </select>
+
+
+    <select id="findByPage" resultType="UserProcessInstance">
+        SELECT
+        d.ID_ processInstanceId,
+        d.BUSINESS_KEY_ businessKey,
+        d.START_USER_ID_ creatorId,
+        d.START_TIME_ startTime,
+        d.END_TIME_ endTime,
+        f.NAME_ processDefinitionName,
+        f.KEY_ processDefinitionKey,
+        e.NAME_ taskName,
+        e.ASSIGNEE_ assignees,
+        g.SUSPENSION_STATE_ active
+        FROM
+        act_hi_procinst d
+        LEFT JOIN act_re_procdef f ON d.PROC_DEF_ID_ = f.ID_
+        LEFT JOIN act_ru_execution g ON d.BUSINESS_KEY_ = g.BUSINESS_KEY_
+        LEFT JOIN(
+        SELECT
+        a.NAME_,a.PROC_INST_ID_,
+        IFNULL(a.ASSIGNEE_,GROUP_CONCAT(b.USER_ID_)) ASSIGNEE_
+        FROM
+        act_hi_taskinst a
+        LEFT JOIN act_hi_identitylink b ON a.ID_ = b.TASK_ID_
+        INNER JOIN (
+        SELECT MAX(START_TIME_) START_TIME_ ,PROC_INST_ID_ FROM act_hi_taskinst WHERE ISNULL(END_TIME_) GROUP BY PROC_INST_ID_
+        ) c ON a.START_TIME_ = c.START_TIME_ AND a.PROC_INST_ID_ = c.PROC_INST_ID_
+        GROUP BY a.PROC_INST_ID_
+        ) e ON d.ID_ = e.PROC_INST_ID_
+        <where>
+            <if test="form.userId != null and !&quot;&quot;.equals(form.userId.toString().trim())">
+                AND d.START_USER_ID_ = #{form.userId}
+            </if>
+        </where>
+        ORDER BY d.START_TIME_ DESC
+    </select>
+
+</mapper>

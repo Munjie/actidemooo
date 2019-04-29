@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Process</title>
+    <span th:include="common/templates :: common-css-js"></span>
+    <span th:include="common/templates :: init-menu"></span>
+    <span th:include="common/templates :: bootstrap-table"></span>
+</head>
+<body>
+<div th:replace="common/templates :: header"></div>
+<div class="container">
+
+    <div class="page-header">
+        <div class="h3">MY PROCESS</div>
+    </div>
+    <table id="records-info"></table>
+</div>
+</body>
+<script th:inline="text">
+    $('#records-info').bootstrapTable({
+        url: "[[@{/Process/page}]]?current=1",//请求数据url
+        showRefresh: true,
+        smartDisplay: true,
+        showToggle: true,
+        paginationPreText: '上一页',
+        paginationNextText: '下一页',
+        pagination: true,//分页
+        pageNumber: 1,
+        pageSize: 15,
+        pageList: [10, 20, 30, 50, 'all'],//分页步进值
+        search: true, //显示搜索框
+        sidePagination: 'server',//服务器端分页
+        queryParams: function (params) {
+            params['size'] = params['limit'];
+            params['current'] = (params['offset'] + params['limit']) / params['limit'];
+            return params;
+        },
+        columns: [
+            {
+                field: 'processInstanceId',
+                title: 'ID',
+                sortable: true
+            },
+            {
+                field: 'businessKey',
+                title: '业务Key',
+            },
+            {
+                field: 'processDefinitionName',
+                title: '流程名',
+            },
+            {
+                field: 'startTime',
+                title: '开始时间',
+            },
+            {
+                field: 'endTime',
+                title: '结束时间',
+            },
+            {
+                field: 'creatorId',
+                title: '创建人',
+            },
+            {
+                field: 'taskName',
+                title: '任务名',
+            },
+            {
+                field: 'assignees',
+                title: '任务审核人',
+            },
+            {
+                field: 'active',
+                title: '状态',
+                formatter: function (value, row, index) { // 单元格格式化函数
+                    if (value == '1') {
+                        return "<span class='text-success'>激活</span>"
+                    }
+                    if (value == '2') {
+                        return "<span class='text-danger'>挂起</span>"
+                    }
+
+                    return "<span class='text-warning'>已完成</span>";
+                }
+            },
+            {
+                field: '',
+                title: '编辑',
+                formatter: function (value, row, index) { // 单元格格式化函数
+
+                    var active = row['active'];
+                    var processInstanceId = row['processInstanceId'];
+
+                    if (active == '2') {
+                        return "<a class='btn btn-default btn-sm btn-active' data-flag='activate' data-id='" + processInstanceId + "'><i class='text-danger glyphicon glyphicon-remove'></i></a>"
+                    }
+                    if (active == '1') {
+                        return "<a class='btn btn-default btn-sm btn-active' data-flag='suspend' data-id='" + processInstanceId + "'><i class='text-success glyphicon glyphicon-ok'></i></a>"
+                    }
+
+                    return "";
+                }
+            },
+        ]
+    })
+
+    $("#records-info").on("click", ".btn-active", function () {
+        var id = $(this).attr("data-id");
+        var flag = $(this).attr("data-flag");
+
+        var currentBtn = $(this);
+        currentBtn.addClass("disabled");
+
+        $.post("[[@{/Process/}]]" + flag + "/" + id, function (result) {
+            if (result['code'] == 200) {
+                currentBtn.removeClass("disabled");
+                $("#records-info").bootstrapTable("refresh");
+                alert("更新成功!");
+                return;
+            }
+            alert("系统异常，请联系管理员!");
+        })
+
+
+    })
+
+</script>
+</html>
